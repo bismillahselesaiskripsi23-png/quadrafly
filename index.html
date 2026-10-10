@@ -1,0 +1,141 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Petualangan Pesawat: Persamaan Kuadrat</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}input,textarea{-webkit-user-select:text;user-select:text}html,body{overscroll-behavior:none}html,body{height:100%;margin:0;font-family:system-ui,sans-serif;background:#7ec8f5;color:#16245c;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(20,40,110,.45);z-index:5;overflow:auto}
+.ov.on{display:flex}.card{background:#fff;border-radius:18px;padding:20px;max-width:640px;width:100%;max-height:92%;overflow:auto;box-shadow:0 10px 40px #0004}
+h1,h2{margin:.2em 0}button,select,input,textarea{font:inherit}
+.b{background:#ff9f1c;color:#fff;border:0;border-radius:12px;padding:10px 16px;margin:4px;font-weight:700;cursor:pointer}.b.s{background:#3a6df0}.b.g{background:#8895b8}.b.r{background:#e5484d}
+#hud{position:fixed;top:0;left:0;right:0;z-index:3;padding:calc(8px + env(safe-area-inset-top,0px)) 8px 0;display:none;pointer-events:none}
+#hud>*{pointer-events:auto}#qp{background:#fffe;border-radius:14px;padding:10px 14px;font-size:clamp(16px,3vw,24px);font-weight:700;text-align:center}
+#st{display:flex;justify-content:space-between;gap:6px;margin-top:6px;font-size:14px;font-weight:700}#st span{background:#fffd;border-radius:10px;padding:4px 10px}
+#pad{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:none;z-index:3;grid-template-columns:repeat(3,56px);gap:6px}
+#pad button{height:56px;border-radius:14px;border:0;background:#fff9;font-size:24px;touch-action:none}
+.q{border:1px solid #cdd6f0;border-radius:12px;padding:10px;margin:8px 0}.q input,.q select{width:100%;margin:2px 0;padding:6px;border:1px solid #bbc;border-radius:8px}
+textarea{width:100%;height:90px}.row{display:flex;gap:8px;flex-wrap:wrap}.row>label{flex:1;min-width:140px;font-size:13px}.row input,.row select{width:100%;padding:6px}
+.cf{position:fixed;top:-20px;z-index:9;pointer-events:none;animation:fall linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.ok{color:#1a9b4b}.no{color:#d23}
+</style></head><body>
+<div id="hud"><div id="qp"></div><div id="st"></div><div style="margin-top:6px;text-align:right"><button class="b g" id="bs">🔊</button><button class="b g" id="bp">⏸ Jeda</button><button class="b r" id="bx">✕ Keluar</button></div></div>
+<div id="pad"><i></i><button data-k="u">▲</button><i></i><button data-k="l">◀</button><button data-k="d">▼</button><button data-k="r">▶</button></div>
+
+<div class="ov on" id="menu"><div class="card" style="text-align:center"><h1 id="mt"></h1><input id="nm" placeholder="Nama kamu" maxlength="30" style="width:80%;padding:10px;font-size:18px;border:2px solid #3a6df0;border-radius:12px;text-align:center;margin:10px 0"><br><button class="b" id="go">▶ Mulai Bermain</button></div></div>
+<div class="ov" id="guide"><div class="card"><h2>Panduan</h2><p>Terbangkan pesawat ke <b>gerbang 3D</b> yang memuat jawaban benar. Gerbang yang kamu lewati dinilai sekali.</p><p>Komputer: ← → / A D (samping), ↑ ↓ / W S (tinggi), Spasi = jeda. HP/tablet: tombol panah di layar.</p><p>Mode: Santai (tanpa batas waktu/pengurangan), Tantangan (waktu + pengurangan skor), Belajar (pembahasan lengkap), Evaluasi (pembahasan di akhir).</p><button class="b" onclick="sh('menu')">Kembali</button></div></div>
+<div class="ov" id="set"><div class="card"><h2>Pengaturan</h2><div class="row"><label>Nama pemain<input id="pn"></label><label>Mode<select id="pm"><option value="santai">Santai</option><option value="tantangan">Tantangan</option><option value="belajar">Belajar</option><option value="evaluasi">Evaluasi</option></select></label><label>Suara<select id="pa"><option value="1">Hidup</option><option value="0">Mati</option></select></label></div><button class="b" id="sv1">Simpan</button></div></div>
+<div class="ov" id="fb"><div class="card" style="max-width:480px;text-align:center"><h2 id="ft"></h2><p id="fx"></p><button class="b" id="fn">Lanjut ▶</button></div></div>
+<div class="ov" id="ps"><div class="card" style="text-align:center"><h2>Jeda</h2><button class="b" id="rs">Lanjutkan</button></div></div>
+<div class="ov" id="end"><div class="card"><h2>Hasil Belajar</h2><div id="er"></div><button class="b" id="ag">Main Lagi</button><button class="b s" id="bm">Kembali ke Menu</button></div></div>
+<div class="ov" id="dash"><div class="card" style="max-width:760px"><h2>Dashboard Guru</h2>
+<div class="row"><label>Judul<input id="c_title"></label><label>Guru<input id="c_teacher"></label><label>Kelas<input id="c_kelas"></label><label>Materi<input id="c_materi"></label><label>Nyawa<input id="c_lives" type="number" min="1"></label><label>Kecepatan<input id="c_speed" type="number" min="5" max="30"></label><label>Waktu/soal (dtk)<input id="c_qtime" type="number" min="5"></label><label>Nilai maks<input id="c_max" type="number" min="1"></label><label>Jumlah soal dimainkan<input id="c_count" type="number" min="1"></label><label>Acak soal<select id="c_shuffle"><option value="1">Ya</option><option value="0">Tidak</option></select></label></div>
+<h3>Soal</h3><div id="ql"></div><button class="b s" id="qa">+ Tambah Soal</button>
+<h3>Impor / Ekspor JSON</h3><textarea id="js" placeholder="JSON game"></textarea><button class="b s" id="xp">Ekspor ke kotak</button><button class="b s" id="ip">Impor dari kotak</button>
+<p style="font-size:12px">Data disimpan di browser/perangkat ini saja (localStorage), tidak tersinkron antarperangkat. Pindah perangkat: salin JSON.</p>
+<button class="b" id="ds">Simpan &amp; Tutup</button><button class="b g" id="dr">Reset contoh</button></div></div>
+
+<script>
+const $=i=>document.getElementById(i),sh=i=>{document.querySelectorAll('.ov').forEach(o=>o.classList.remove('on'));if(i)$(i).classList.add('on')};
+const Q=(t,o,a,e)=>({t,o,a,e,pts:100});
+const DEF={v:4,title:'Petualangan Pesawat: Persamaan Kuadrat',teacher:'Guru Matematika',kelas:'XI',materi:'Persamaan kuadrat: mengidentifikasi dan menentukan koefisien a, b, c',lives:3,speed:11,qtime:25,max:100,count:15,shuffle:1,qs:[
+Q('Manakah yang merupakan persamaan kuadrat?',['2x + 3 = 0','x² − 5x + 6 = 0','x³ − 1 = 0','1/x + 2 = 0'],1,'Persamaan kuadrat berpangkat tertinggi 2 dan berbentuk ax² + bx + c = 0 dengan a ≠ 0.'),
+Q('Koefisien a pada 3x² + 4x − 7 = 0 adalah …',['3','4','−7','0'],0,'a adalah koefisien x², yaitu 3.'),
+Q('Koefisien b pada 2x² − 5x + 1 = 0 adalah …',['2','−5','1','5'],1,'b adalah koefisien x, yaitu −5 (tanda ikut).'),
+Q('Konstanta c pada x² + 6x − 9 = 0 adalah …',['−9','6','1','9'],0,'c adalah suku tanpa variabel, yaitu −9.'),
+Q('Koefisien a pada 5x² − 2x + 8 = 0 adalah …',['5','−2','8','2'],0,'a adalah koefisien x², yaitu 5.'),Q('Koefisien a pada −x² + 4x + 1 = 0 adalah …',['1','−1','4','0'],1,'−x² sama dengan −1·x², sehingga a = −1.'),Q('Koefisien b pada x² + 7x − 10 = 0 adalah …',['7','−10','1','−7'],0,'b adalah koefisien x, yaitu 7.'),Q('Koefisien b pada 4x² − x + 9 = 0 adalah …',['4','−1','9','1'],1,'−x sama dengan −1·x, sehingga b = −1.'),Q('Konstanta c pada 2x² + 3x + 5 = 0 adalah …',['2','3','5','−5'],2,'c adalah suku tanpa variabel, yaitu 5.'),Q('Konstanta c pada x² − 8x = 0 adalah …',['−8','0','1','8'],1,'Tidak ada suku konstanta, jadi c = 0.'),Q('Konstanta c pada 3x² − 2x − 6 = 0 adalah …',['−6','−2','3','6'],0,'c adalah suku tanpa variabel, yaitu −6.'),Q('Manakah yang merupakan persamaan kuadrat?',['x + 5 = 2x','3x² = 12','x³ + x = 0','2/x = 4'],1,'3x² = 12 dapat ditulis 3x² − 12 = 0 (bentuk ax² + bx + c = 0).'),Q('Koefisien a pada 7x² + x − 3 = 0 adalah …',['7','1','−3','0'],0,'a adalah koefisien x², yaitu 7.'),Q('Koefisien b pada −3x² + 5x − 2 = 0 adalah …',['−3','5','−2','−5'],1,'b adalah koefisien x, yaitu 5.'),
+Q('Manakah yang BUKAN persamaan kuadrat?',['x² = 9','(x−1)(x+2) = 0','x² + 3x = x² − 4','2x² − x = 0'],2,'x² saling menghapus sehingga menjadi 3x + 4 = 0 (linear).')]};
+let C,P={name:'',mode:'belajar',audio:1};
+try{C=JSON.parse(localStorage.getItem('qg_c'));if(!C||C.v!==4)C=DEF;P=Object.assign(P,JSON.parse(localStorage.getItem('qg_p')||'{}'))}catch(e){C=DEF}
+const save=()=>{try{localStorage.setItem('qg_c',JSON.stringify(C));localStorage.setItem('qg_p',JSON.stringify(P))}catch(e){}};
+function head(){$('mt').textContent=C.title;$('nm').value=P.name||''}head();
+
+// audio
+let AC;function beep(f,d,ty){if(!+P.audio)return;try{AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume();const o=AC.createOscillator(),g=AC.createGain();o.type=ty||'sine';o.frequency.value=f;g.gain.value=.16;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
+
+let EN;function engine(on){if(!+P.audio)on=false;try{if(on&&!EN){AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume();const g=AC.createGain();g.gain.value=.07;const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=75;const l=AC.createOscillator();l.frequency.value=24;const lg=AC.createGain();lg.gain.value=.04;l.connect(lg);lg.connect(g.gain);const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=450;o.connect(lp);lp.connect(g);g.connect(AC.destination);const b=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const n=AC.createBufferSource();n.buffer=b;n.loop=true;const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=800;const ng=AC.createGain();ng.gain.value=.06;n.connect(f);f.connect(ng);ng.connect(AC.destination);o.start();l.start();n.start();EN={o,l,n}}else if(!on&&EN){EN.o.stop();EN.l.stop();EN.n.stop();EN=null}}catch(e){}}
+function chime(g){(g?[523,659,784,1047]:[330,262,196]).forEach((f,i)=>setTimeout(()=>beep(f,g?.25:.3,g?'triangle':'sawtooth'),i*120))}
+let MU=null;
+function music(on){if(!+P.audio)on=false;try{if(on&&!MU){AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume();MU={t:AC.currentTime+.1,s:0};MU.id=setInterval(()=>{if(!MU)return;while(MU.t<AC.currentTime+.3){const s=MU.s,bar=Math.floor(s/16)%4,p4=s%16,d=60/(125+Math.min(qi||0,10)*6)/4,ch=[[261.6,329.6,392],[220,261.6,329.6],[174.6,220,261.6],[196,246.9,293.7]][bar],t=MU.t;const tn=(f,du,ty,v)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+du);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+du)};if(p4%4===0)tn(70,.15,'sine',.3);if(p4%2===0)tn(ch[0]/2,d*1.8,'sawtooth',.05);tn(ch[p4%3]*(p4%8<4?2:4),d*.9,'square',.03);if(p4%4===2)tn(9000,.03,'square',.015);if(p4%16===15)tn(ch[2]*4,d*2,'triangle',.04);MU.t+=d;MU.s++}},80)}else if(!on&&MU){clearInterval(MU.id);MU=null}}catch(e){}}
+function goFin(){clearG();gz=plane.position.z-60;const g=new THREE.Group(),c=document.createElement('canvas');c.width=1024;c.height=256;const x=c.getContext('2d');for(let i=0;i<32;i++)for(let j=0;j<8;j++){x.fillStyle=(i+j)%2?'#000':'#fff';x.fillRect(i*32,j*32,32,32)}x.fillStyle='#fff';x.fillRect(232,70,560,116);x.fillStyle='#d00';x.font='bold 100px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('FINISH',512,130);const b=new THREE.Mesh(new THREE.PlaneGeometry(32,8),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:2,fog:false}));b.position.y=9;g.add(b);[-15,15].forEach(px=>{const m=new THREE.Mesh(new THREE.BoxGeometry(1,12,1),new THREE.MeshBasicMaterial({color:0xff2d55,fog:false}));m.position.set(px,3,0);g.add(m)});g.position.z=gz;S.add(g);gates.push(g);st='fin';$('qp').textContent='🏁 Terbang menuju garis finish!'}
+function win(){[[523,0],[659,.12],[784,.24],[1047,.36],[784,.52],[1047,.64],[1319,.8],[1568,1]].forEach(([f,t])=>setTimeout(()=>beep(f,.35,'triangle'),t*1000));[523,659,784,1047].forEach(f=>setTimeout(()=>beep(f,1.2,'triangle'),1250));[0,300,600,900].forEach(t=>setTimeout(()=>beep(1800+Math.random()*1200,.12,'square'),1300+t))}
+function confetti(){const cl=['#ff5a4f','#ffd23f','#3a6df0','#1a9b4b','#ff9f1c','#b455e8'],em=['🎉','⭐','✨'];for(let i=0;i<80;i++){const e=document.createElement('div');e.className='cf';e.style.left=Math.random()*100+'vw';e.style.animationDuration=2+Math.random()*3+'s';e.style.animationDelay=Math.random()*1.5+'s';if(i%5===0){e.textContent=em[i%3];e.style.fontSize='26px'}else{e.style.width='10px';e.style.height='16px';e.style.background=cl[i%6]}document.body.appendChild(e);setTimeout(()=>e.remove(),7000)}}
+// 3D
+const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));document.body.prepend(R.domElement);
+const S=new THREE.Scene();S.background=new THREE.Color(0x7ec8f5);S.fog=new THREE.Fog(0xbfe6ff,40,170);
+const cam=new THREE.PerspectiveCamera(65,1,.1,300);
+S.add(new THREE.HemisphereLight(0xffffff,0x4aa3d8,.9));const sun=new THREE.DirectionalLight(0xfff2cc,.9);sun.position.set(20,40,10);S.add(sun);
+const M=(c)=>new THREE.MeshLambertMaterial({color:c});
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(600,600),M(0x2b8fd6));sea.rotation.x=-Math.PI/2;sea.position.y=-30;S.add(sea);
+const decor=[];
+for(let i=0;i<14;i++){const g=new THREE.Group();const s=2+Math.random()*3;[0,1,2].forEach(k=>{const m=new THREE.Mesh(new THREE.SphereGeometry(s*(1-k*.2),12,8),new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:.92}));m.position.set(k*s*.9,k*.3,0);g.add(m)});g.position.set((Math.random()-.5)*90,2+Math.random()*18,-Math.random()*220);g.userData.c=1;S.add(g);decor.push(g)}
+for(let i=0;i<8;i++){const g=new THREE.Group();const a=new THREE.Mesh(new THREE.ConeGeometry(7+Math.random()*6,10+Math.random()*10,7),M(i%2?0x3fae5b:0x8a7a6a));a.position.y=-25;g.add(a);const b=new THREE.Mesh(new THREE.CylinderGeometry(12,12,3,10),M(0xf2d98c));b.position.y=-29;g.add(b);g.position.set((Math.random()<.5?-1:1)*(25+Math.random()*50),0,-Math.random()*220);S.add(g);decor.push(g)}
+const plane=new THREE.Group(),bank=new THREE.Group();plane.add(bank);
+const body=new THREE.Mesh(new THREE.CylinderGeometry(.4,.3,2.6,12),M(0xff5a4f));body.rotation.x=Math.PI/2;bank.add(body);
+const wing=new THREE.Mesh(new THREE.BoxGeometry(3.6,.1,.8),M(0xffd23f));wing.position.z=-.1;bank.add(wing);
+const tail=new THREE.Mesh(new THREE.BoxGeometry(1.2,.08,.5),M(0xffd23f));tail.position.z=1.2;bank.add(tail);
+const fin=new THREE.Mesh(new THREE.BoxGeometry(.08,.6,.5),M(0xffd23f));fin.position.set(0,.3,1.2);bank.add(fin);
+const cock=new THREE.Mesh(new THREE.SphereGeometry(.3,10,8),M(0x9be7ff));cock.position.set(0,.3,-.2);bank.add(cock);
+const prop=new THREE.Mesh(new THREE.BoxGeometry(1.4,.12,.05),M(0x333333));prop.position.z=-1.35;bank.add(prop);S.add(plane);
+function rs(){R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.fov=cam.aspect<1?80:65;cam.updateProjectionMatrix()}addEventListener('resize',rs);addEventListener('orientationchange',rs);rs();
+
+// game
+let st='menu',qs,qi,score,ok,bad,lives,gates=[],gz=0,res,t0,tq,pt=0,fx=[],K={};
+const X=13,YMIN=0,YMAX=5.5;let vx=0,vy=0;
+function tex(t){const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,1024,512);x.fillStyle='#16245c';x.font='bold 150px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(t,512,256,940);return new THREE.CanvasTexture(c)}
+function clearG(){gates.forEach(g=>S.remove(g));gates=[]}
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function start(){let l=C.qs.map(q=>q);if(+C.shuffle)shuf(l);qs=l.slice(0,Math.max(1,Math.min(C.count,l.length)));qi=0;score=ok=bad=0;lives=3;P.mode='belajar';P.name=$('nm').value.trim();save();document.querySelectorAll('.cf').forEach(e=>e.remove());res=[];t0=Date.now();pt=0;plane.position.set(0,2.5,0);vx=vy=0;sh();$('hud').style.display='block';$('pad').style.display=matchMedia('(pointer:coarse)').matches?'grid':'none';ask()}
+function ask(){clearG();const q=qs[qi],ix=shuf(q.o.map((_,i)=>i)),n=ix.length;
+ $('qp').textContent=q.t;gz=plane.position.z-70;tq=+C.qtime;
+ ix.forEach((oi,k)=>{const g=new THREE.Group(),w=new THREE.Mesh(new THREE.PlaneGeometry(7,3.5),new THREE.MeshBasicMaterial({map:tex(q.o[oi]),side:2,fog:false}));g.add(w);const f=new THREE.Mesh(new THREE.PlaneGeometry(7.5,4),new THREE.MeshBasicMaterial({color:0xff9f1c,side:2,fog:false}));f.position.z=-.05;g.add(f);g.position.set(n>1?-X+2*X*k/(n-1):0,n>4?(k%2?4.6:1.1):2.7+(Math.random()*2-1),gz);g.userData.i=oi;S.add(g);gates.push(g)});
+ st='play';upd()}
+function upd(){const m=P.mode;$('st').innerHTML=`<span>Soal ${qi+1}/${qs.length} (${Math.round(qi/qs.length*100)}%)</span><span>Skor ${score}</span><span>✔${ok} ✘${bad}</span><span>${'❤️'.repeat(Math.max(0,lives))}${'🖤'.repeat(Math.max(0,3-lives))}</span>${m==='tantangan'?`<span>⏱ ${Math.ceil(tq)}</span>`:''}`}
+function judge(gi){if(st!=='play')return;st='fb';const q=qs[qi],good=gi===q.a,m=P.mode;
+ res.push({q,gi,good});if(good){ok++;score+=q.pts;chime(1);cam.userData.f=1}else{bad++;chime(0);if(m!=='santai')lives--;if(m==='tantangan'||m==='evaluasi')score=Math.max(0,score-25);cam.userData.sh=.6}
+ upd();let t,x;if(m==='evaluasi'){setTimeout(next,700);return}
+ t=gi<0?'⏳ Gerbang terlewat':good?'✅ Benar!':'❌ Belum tepat';
+ x=good?q.e:(m==='belajar'?'Coba pahami: '+q.e:'Jawaban belum tepat. Ayo lebih teliti di soal berikutnya.');$('ft').textContent=t;$('fx').textContent=x+(lives<=0?' Nyawa habis!':'');$('fn').textContent=lives<=0?'Lihat hasil':'Lanjut ▶';sh('fb')}
+function next(){sh();if(lives<=0){finish(1);return}if(qi+1>=qs.length){goFin();return}qi++;ask()}
+$('fn').onclick=next;
+function finish(over){st='end';clearG();$('hud').style.display='none';$('pad').style.display='none';const tot=qs.length,pct=Math.round(ok/tot*100),fin=Math.max(0,Math.min(+C.max,Math.round(ok/tot*C.max))),sec=Math.round((Date.now()-t0)/1000);
+ $('er').innerHTML=`<p><b>${P.name||'Pemain'}</b> · ${C.title}<br>${C.materi}</p><p>Soal dijawab: ${res.length}/${tot} · Benar ${ok} · Salah ${bad} · ${pct}% · Skor ${score} · <b>Nilai akhir ${fin}/${C.max}</b> · ${sec} dtk</p>`+res.map((r,i)=>`<div class="q"><b>${i+1}. ${r.q.t}</b><br>${r.good?'<span class=ok>Benar</span>':'<span class=no>Salah/terlewat</span>'}<br>Kunci: ${r.q.o[r.q.a]}<br><i>${r.q.e}</i></div>`).join('');$('er').innerHTML=`<div style="text-align:center"><p style="font-size:20px">Nama: <b>${P.name||'Pemain'}</b></p><p style="font-size:18px;margin:0">Nilai akhir</p><p style="font-size:56px;font-weight:800;margin:0">${fin}</p>${over?'<p>Nyawa habis. Ayo coba lagi dari awal!</p>':'<p>Kamu sampai di garis finish! 🎉</p>'}</div>`;$('end').querySelector('h2').textContent=over?'💥 GAME OVER':'🏆 Selamat!';if(!over){win();confetti()}sh('end')}
+function pause(on){if(st==='play'&&on){st='pause';sh('ps')}else if(st==='pause'&&!on){st='play';sh()}}
+$('bp').onclick=()=>pause(1);$('bs').onclick=e=>{P.audio=+P.audio?0:1;e.target.textContent=+P.audio?'🔊':'🔇';save()};$('rs').onclick=()=>pause(0);
+$('bx').onclick=()=>{if(st==='play')pause(1);if(confirm('Keluar ke menu?')){st='menu';clearG();$('hud').style.display='none';$('pad').style.display='none';sh('menu')}};
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;const k=e.key.toLowerCase();K[k]=1;if(k===' '){e.preventDefault();pause(st==='pause'?0:1)}if(k.startsWith('arrow'))e.preventDefault()});addEventListener('keyup',e=>K[e.key.toLowerCase()]=0);
+document.querySelectorAll('#pad button').forEach(b=>{const k='pad'+b.dataset.k;b.onpointerdown=e=>{e.preventDefault();K[k]=1};['pointerup','pointerleave','pointercancel'].forEach(ev=>b['on'+ev]=()=>K[k]=0)});
+$('go').onclick=()=>{beep(440,.1);start()};$('ag').onclick=start;$('bm').onclick=()=>{head();sh('menu')};
+
+
+
+let dg=null;const cv=R.domElement;cv.style.touchAction='none';
+cv.addEventListener('pointerdown',e=>{dg={x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointermove',e=>{if(!dg||(st!=='play'&&st!=='fin'))return;const dx=e.clientX-dg.x,dy=e.clientY-dg.y;dg={x:e.clientX,y:e.clientY};const p=plane.position;p.x=Math.max(-X-1,Math.min(X+1,p.x+dx*2*X/innerWidth*1.8));p.y=Math.max(YMIN,Math.min(YMAX,p.y-dy*YMAX/innerHeight*2.2));bank.rotation.z=Math.max(-.6,Math.min(.6,-dx*.03))});
+['pointerup','pointercancel'].forEach(v=>cv.addEventListener(v,()=>dg=null));
+document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>{if(!e.target.tagName||e.target.tagName!=='INPUT')e.preventDefault()});document.addEventListener('dragstart',e=>e.preventDefault());
+let last=performance.now();
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;music(st==='play'||st==='fin');
+ if(st==='play'||st==='fin'){const ax=((K.arrowright||K.d||K.padr)?1:0)-((K.arrowleft||K.a||K.padl)?1:0),ay=((K.arrowup||K.w||K.padu)?1:0)-((K.arrowdown||K.s||K.padd)?1:0);
+  vx+=(ax*12-vx)*Math.min(1,dt*6);vy+=(ay*6-vy)*Math.min(1,dt*6);
+  const p=plane.position;p.x=Math.max(-X-1,Math.min(X+1,p.x+vx*dt));p.y=Math.max(YMIN,Math.min(YMAX,p.y+vy*dt));p.z-=C.speed*dt;
+  if(P.mode==='tantangan'){tq-=dt;if(Math.floor(tq*2)!==Math.floor((tq+dt)*2))upd();if(tq<=0)judge(-1)}
+  if(st==='fin'&&p.z<=gz){finish();}if(st==='play'&&p.z<=gz){let h=-1;for(const g of gates){if(Math.abs(p.x-g.position.x)<3.2&&Math.abs(p.y-g.position.y)<1.9){h=g.userData.i;break}}judge(h)}}
+ bank.rotation.z+=(-vx*.06-bank.rotation.z)*.15;bank.rotation.x+=(vy*.05-bank.rotation.x)*.15;prop.rotation.z+=40*dt;
+ const p=plane.position;sea.position.z=p.z;sea.position.x=p.x;
+ decor.forEach(d=>{if(d.position.z>p.z+30){d.position.z=p.z-200-Math.random()*40;if(d.userData.c)d.position.x=p.x+(Math.random()-.5)*90}});
+ const sk=cam.userData.sh>0?(cam.userData.sh-=dt,(Math.random()-.5)*.4):0;
+ cam.position.set(p.x*.7+sk,p.y+2.6,p.z+7);cam.lookAt(p.x*.8,p.y+.4,p.z-12);R.render(S,cam)}
+requestAnimationFrame(loop);
+
+// dashboard
+const F=['title','teacher','kelas','materi','lives','speed','qtime','max','count','shuffle'];
+function qrender(){$('ql').innerHTML=C.qs.map((q,i)=>`<div class="q"><input data-i="${i}" data-f="t" value="${q.t.replace(/"/g,'&quot;')}" placeholder="Pertanyaan">${q.o.map((o,j)=>`<input data-i="${i}" data-o="${j}" value="${o.replace(/"/g,'&quot;')}" placeholder="Opsi ${j+1}">`).join('')}<select data-i="${i}" data-f="a">${q.o.map((o,j)=>`<option value="${j}" ${j===q.a?'selected':''}>Kunci: opsi ${j+1}</option>`).join('')}</select><input data-i="${i}" data-f="e" value="${q.e.replace(/"/g,'&quot;')}" placeholder="Pembahasan"><input data-i="${i}" data-f="pts" type="number" value="${q.pts}" title="Skor"><button class="b s" data-act="up" data-i="${i}">↑</button><button class="b s" data-act="dn" data-i="${i}">↓</button><button class="b s" data-act="dup" data-i="${i}">Salin</button><button class="b r" data-act="del" data-i="${i}">Hapus</button></div>`).join('')}
+$('ql').oninput=e=>{const t=e.target,q=C.qs[t.dataset.i];if(t.dataset.o!==undefined)q.o[t.dataset.o]=t.value;else if(t.dataset.f){q[t.dataset.f]=t.dataset.f==='a'||t.dataset.f==='pts'?+t.value:t.value}};
+$('ql').onclick=e=>{const a=e.target.dataset.act;if(!a)return;const i=+e.target.dataset.i,L=C.qs;if(a==='del'&&L.length>1)L.splice(i,1);if(a==='dup')L.splice(i+1,0,JSON.parse(JSON.stringify(L[i])));if(a==='up'&&i>0)[L[i-1],L[i]]=[L[i],L[i-1]];if(a==='dn'&&i<L.length-1)[L[i+1],L[i]]=[L[i],L[i+1]];qrender()};
+$('qa').onclick=()=>{C.qs.push(Q('Soal baru',['Opsi A','Opsi B','Opsi C','Opsi D'],0,'Pembahasan'));qrender()};
+
+function read(){F.forEach(f=>{const v=$('c_'+f).value;C[f]=['title','teacher','kelas','materi'].includes(f)?v:+v});C.count=Math.max(1,Math.min(C.count,C.qs.length))}
+$('ds').onclick=()=>{read();save();head();sh('menu')};
+$('xp').onclick=()=>{read();$('js').value=JSON.stringify(C,null,1);$('js').select()};
+$('ip').onclick=()=>{try{const j=JSON.parse($('js').value);if(!Array.isArray(j.qs)||!j.qs.length)throw 0;C=Object.assign({},DEF,j);F.forEach(f=>$('c_'+f).value=C[f]);qrender()}catch(e){alert('JSON tidak valid.')}};
+$('dr').onclick=()=>{if(confirm('Kembalikan ke soal contoh?')){C=JSON.parse(JSON.stringify(DEF));F.forEach(f=>$('c_'+f).value=C[f]);qrender()}};
+</script></body></html>
